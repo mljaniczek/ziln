@@ -1,0 +1,29 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# ziln
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of ziln is to provide easy-to-use code to implement the
+zero-inflated log-normal model method presented in Prost (2021). It is
+useful for inference of sparse biological association networks,
+especially in data which contains structural (informative) zeros.
+
+Prost V, Gazut S, Bruls T (2021) A zero inflated log-normal model for
+inference of sparse microbial association networks. PLoS Comput Biol
+17(6): e1009089.
+
+## Installation
+
+You can install the development version of ziln like so:
+
+``` r
+# install.packages("remotes")
+# remotes::install_github("mljaniczek/ziln")
+```
+
+## Example
+
+## Tutorial

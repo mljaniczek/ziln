@@ -1,0 +1,24 @@
+Package: ziln
+Type: Package
+Title: Zero inflated log-normal model for inference of sparse association networks
+Version: 0.1.0
+Authors@R: person("Margaret", "Janiczek", email = "mjaniczek@umass.edu",
+  role = c("aut", "cre"))
+Description: This package implements the code provided from Prost V, Gazut S, Bruls T (2021) 
+    A zero inflated log-normal model for inference of sparse microbial association networks. 
+    PLoS Comput Biol 17(6): e1009089
+    Turns code provided with that paper into a package useful for implementing their 
+    method into an analysis pipeline. 
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Depends: 
+    R (>= 2.10)
+Config/testthat/edition: 3
+URL: https://github.com/mljaniczek/ziln
+BugReports: https://github.com/mljaniczek/ziln/issues
