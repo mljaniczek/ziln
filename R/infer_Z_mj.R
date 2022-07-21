@@ -1,7 +1,7 @@
-# margie version of this function
+# my version of this function
 # accepts only standardized input so doesn't standardize within
 
-infer_Z_margie = function(X, seq_depth = "TS") {
+infer_Z_mj = function(X, seq_depth = "TS") {
 
   d = dim(X)[2] # number of rows
   n = dim(X)[1] # number of columns
@@ -24,7 +24,7 @@ infer_Z_margie = function(X, seq_depth = "TS") {
     X_clr[!nz] = -Inf
   }
 
-  log_ratios = X#_clr
+  log_ratios = X_clr
   a = double(n)
 
   for(i in 1:d){

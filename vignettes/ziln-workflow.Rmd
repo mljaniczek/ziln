@@ -15,230 +15,52 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(dplyr)
 library(ziln)
-library(JGL)
 library(igraph)
-library(tidyverse)
-library(igraph)
-library(RColorBrewer)
-library(pheatmap)
-#source(here::here("helper_functions.r")) #contains functions I made using code from Kate and Yukun and one function from Koyej0 lab GitHub for tuning. To make it easier for users I pasted the functions below in a code chunk. 
-theme_set(theme_bw()) #setting ggplot theme 
-igraph_options(annotate.plot = TRUE)
-
-data("mousebac")
-dat_mat <- as.matrix(mousebac %>% select(-c(mouse_code, bacterial_species, experiment_batch, species_10, resistant)))
+data("counts_el")
 ```
 
-```{r helper_functions}
-# this is a function I made which incorporates code from Kate Shutta and Yukun Li.
-# input your prepared adjacency matrix (e.g. from graph_from_adjancency_matrix(JGL(...)$theta)) as well as any graphing parameters
-plot_jgl <- function(
-  thisGraph,
-  multiplier = 15,
-  vertex.size = 4,  
-  vertex.label.dist = 2 , 
-  vertex.label.cex = 0.5,
-  rescale = F,
-  vertex.color = NULL, 
-  vertex.label.color= NULL, 
-  main = NULL,
-  #sub = NULL,
-  ...) {
-  myLayout =  layout_in_circle(makePrettyGraphFromGraph(thisGraph))*0.8
-  lab.locs <- radian.rescale(x=1:length(V(thisGraph)), direction=-1, start=0)
-  plot(makePrettyGraphFromGraph(thisGraph, multiplier = multiplier), 
-       vertex.size = vertex.size,  
-       vertex.label.dist = vertex.label.dist , 
-       vertex.label.cex = vertex.label.cex, 
-       layout = myLayout,
-       lab.locs = lab.locs,
-       vertex.label.degree=lab.locs,
-       vertex.color = vertex.color,
-       vertex.label.color= vertex.label.color,
-       rescale=F, 
-       main = main,
-       #sub = sub,
-       ...)
-}
-
-
-# this is a function for making red-blue edges to match the edge weights(partial correlation)
-# you may need to adjust the multiplier depending on how strong your edges are
-# function from Kate and Yukun
-makePrettyGraphFromGraph = function(thisGraph, multiplier = 15,redblue=T)
-{
-  if(redblue == T) my_palette <- brewer.pal(n = 8, name = "RdBu")
-  if(redblue == F) my_palette <- brewer.pal(n = 8, name = "PRGn")
-  my_palette <- my_palette[8:1]
-  E(thisGraph)$width = abs(E(thisGraph)$weight)*multiplier
-  E(thisGraph)$color = ifelse(sign(E(thisGraph)$weight)>0,my_palette[1],my_palette[8])
-  return(thisGraph)
-}
-
-
-# this is code from this stack exchange: 
-# https://stackoverflow.com/questions/23209802/placing-vertex-label-outside-a-circular-layout-in-igraph
-
-radian.rescale <- function(x, start=0, direction=1) {
-  c.rotate <- function(x) (x + start) %% (2 * pi) * direction
-  c.rotate(scales::rescale(x, c(0, 2 * pi), range(x)))
-}
-
-# this function from Koyejo Lab Github https://github.com/koyejo-lab/JointGraphicalLasso
-# input is list of matrices same as you would put into `JGL` function, as well as results of `JGL`
-# output is AIC for particular estimated graph.
-# use this function when tuning lambdas
-vBIC <- function(X, est_graph, thr=0.001){
-  num <- length(X)
-  BIC_acc <- 0.
-  for(i in 1:num){
-    
-    data_num <- dim(X[[i]])[1]
-    sample_cov <- cov(X[[i]], X[[i]])
-    tr_sum <- sum(diag(sample_cov %*% est_graph$theta[[i]]))
-    
-    log_det <- determinant(est_graph$theta[[i]], logarithm = TRUE)$modulus[1][1]
-    
-    E <- sum(sum(abs(est_graph$theta[[i]]) >= thr))
-    BIC_acc <- BIC_acc + (tr_sum - log_det) + (log(data_num)*E/data_num)
-  }
-  return(BIC_acc)
-}
-
-```
+In this tutorial I demonstrate the utility of the package using the same real-world microbial data used in the Prost (2021) paper. As in the paper, I use data from 1135 stool samples and have filtered down to 565 microbial markers. 
 
 ```{r}
-library(huge)
-# infer_Z needs matrix input 
-Z <- infer_Z(dat_mat, seq_depth = "TS")
-
-rho_mat = matrix(.5, d,d)
-diag(rho_mat) = 0           
-S = cor(Z)
-lamda_max = max_off_diagonal_value(S)
-pen = lamda_path(lamda_max = lamda_max)
-mb_Z2 = huge.mb(Z, lambda = pen, verbose = F)
-
-a = QUIC(S, rho = .5, path = pen, tol = 1e-7, msg = 0, maxIter = 10000)
-
-quic_path_Z2 = list()
-for(k in 1:length(pen)) {
-    quic_path_Z2[[k]] = a$W[,,k]
-  }
-
-path = quic_path_Z2
-
-graph_mouse <- compute_graph_ziln(Z, target_edge_number = 200)
-
-test_graph <- graph.adjacency(
-                    graph_mouse,
-                    weighted = T,
-                    mode = "undirected",
-                    diag = FALSE
-                  )
-
-plot(makePrettyGraphFromGraph(test_graph, multiplier = 1), 
-       vertex.size = 4,  
-       vertex.label.dist = 2 , 
-       vertex.label.cex = 0.5, 
-       #vertex.label.color= color_list$color, 
-       #vertex.color= color_list$color, 
-       layout = myLayout,
-       lab.locs = lab.locs,
-       vertex.label.degree=lab.locs,
-       rescale=F, 
-     main = "ZILN")
+head(counts_el[,1:10])
 ```
 
-Sensitive to input number of edges
+Use the `infer_Z_mj()` function which accepts raw count matrix (of filtered/narrowed down variables). After assuming that the data follow the zero inflated normal distribution, estimate the empirical correlation matrix:  
+```{r warning = FALSE}
+Z_el <- infer_Z_mj(as.matrix(counts_el))
+
+
+```
+
+Next use the `compute_graph_ziln()` function which can use the neightborhood search (Meinshausen and Buhlmann) on the empirical correlation matrix. 
+ The MB algorithm "solves a penalized pseudo-likelihood maximization problem". 
+
+In the Prost paper they pre-specify 1200 edges so this is done here as well. 
+Note this can be time consuming since it searches a grid, so I have loaded the computation. 
 
 ```{r}
-# color and labels for edges
-edge_palette <- brewer.pal(n = 8, name = "RdBu")[c(8,1)]
-edge_labels <- c("Positive", "Negative")
-```
-
-```{r indiv_test_graph, include = FALSE, eval = FALSE}
-# individual graph for testing
-
-test_graph <- graph_from_adjacency_matrix(
-                    -cov2cor(path[[1]]),
-                    weighted = T,
-                    mode = "undirected",
-                    diag = FALSE
-                  )
-
-test_graph <- graph.adjacency(
-                    path[[10]],
-                    weighted = T,
-                    mode = "undirected",
-                    diag = FALSE
-                  )
-
-test <- E(test_graph)
-
-myLayout =  layout_in_circle(makePrettyGraphFromGraph(test_graph))*0.8
-lab.locs <- radian.rescale(x=1:length(V(test_graph)), direction=-1, start=0)
-test <- V(test_graph)
-color_opts <- RColorBrewer::brewer.pal(3, "Dark2")
-# color_list <- data.frame(class = met_group) %>%
-#   mutate(color = case_when(
-#     class == "Amino Acids" ~ color_opts[1],
-#     class == "Acyl carnitines" ~ color_opts[2],
-#     class == "Other" ~ color_opts[3],
-#     TRUE ~ NA_character_
-#     )
-#   )
-
-igraph.options(annotate.plot = TRUE,
-               print.edge.attributes = TRUE)
-plot(makePrettyGraphFromGraph(test_graph, multiplier = 5), 
-       vertex.size = 4,  
-       vertex.label.dist = 2 , 
-       vertex.label.cex = 0.5, 
-       #vertex.label.color= color_list$color, 
-       #vertex.color= color_list$color, 
-       layout = myLayout,
-       lab.locs = lab.locs,
-       vertex.label.degree=lab.locs,
-       rescale=F, 
-     main = "ZILN")
-```
-
-```{r}
-# trying to reproduce figure 4 from paper
-load(here::here("data/ll_deep.rda"))
-counts_el = counts[,apply(counts > 0, 2, sum) / dim(counts)[1] > 0.2]
-
-Z_el <- infer_Z(as.matrix(counts_el))
-
 # below takes a long time 
-#graph.zi = compute_graph_with_target_number_of_edges_mb(Z_el, 1200)
+#graph.zi = compute_graph_ziln(Z_el, 1200)
 load(here::here("data/graph_zi_lldeep.Rdata"))
-z3 = graph.zi != 0
+```
 
-library(igraph)
-el_graph <- graph.adjacency(graph.zi, mode = "undirected",
+Finally we use the `igraph::graph.adjacency()` function to create an `igraph` graph from the above adjacency matrix, then use the result to plot with `plot.igraph`.
+```{r}
+el_graph <- graph.adjacency(graph.zi, 
+                            mode = "undirected",
                             weighted = T)
 
-test <- E(el_graph)
-
-
-
-plot(makePrettyGraphFromGraph(el_graph, multiplier = 1), 
-       vertex.size = 4,  
-       vertex.label.dist = 2 , 
-       vertex.label.cex = 0.5, 
-       #vertex.label.color= color_list$color, 
-       #vertex.color= color_list$color, 
-       layout = myLayout,
-       lab.locs = lab.locs,
-       vertex.label.degree=lab.locs,
-       rescale=F, 
-     main = "ZILN")
-
+plot(el_graph, 
+     multiplier = 15,
+     vertex.size = 4,  
+     #vertex.label.dist = 2 , 
+     vertex.label.cex = 0.5,
+     rescale = T,
+     vertex.label = NA,
+     layout = layout_with_fr)
 ```
+
+
 
 
