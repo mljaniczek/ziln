@@ -22,3 +22,4 @@ Depends:
 Config/testthat/edition: 3
 URL: https://github.com/mljaniczek/ziln
 BugReports: https://github.com/mljaniczek/ziln/issues
+RoxygenNote: 7.2.1

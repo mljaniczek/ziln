@@ -1,6 +1,6 @@
 # compute graph with target number of edges
 
-compute_graph_ziln = function(X, target_edge_number, tol = 1) {
+compute_graph_ziln <- function(X, target_edge_number, tol = 1) {
   l_min = 0
   l = 0.5
   l_max = 1

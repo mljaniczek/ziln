@@ -20,6 +20,71 @@ library(igraph)
 data("counts_el")
 ```
 
+## Introduction 
+
+This tutorial summarizes details of the Zero inflated log-normal (ZILN) model (Prost et. al 2021), then walks through the steps needed to run the `ziln` package I developed from code provided with the paper, applying it to a real-world dataset. 
+
+## Zero Inflated Log-Normal Model Overview
+
+### Background
+
+* As described elsewhere, the Gaussian Graphical Model (GGM), a graph which assumes multivariate normal distribution for variables, contains nodes connected by edges. Edge values are taken from the precision matrix $\Sigma$, and a zero value indicates conditional independence (no edge). 
+
+* There are many situations where the assumption of multivariate normal distribution will not be applicable, especially in high-dimensional biological data which has an excess of zeros
+
+* Some of these zeros might be from technical or sample issues, but others will be true "structural" zeros that are informative (i.e. some bacteria types will NEVER have certain metabolites, so a zero value could be very informative!)
+
+* Prost et.al (2021) presented a  **zero-inflated log-normal graphical model** to account for such structural zeros. 
+
+### Notation
+
+* $Y$: data matrix. $n$ samples by $p$ variables.
+
+* $y_{ij}$: observed counts. $i = 1...n$ samples and $j = 1...p$ variables. 
+
+* $z_i$: latent multivariate normal variable
+
+* $a_i$: variable representing the real (unknown) abundances 
+
+* $\delta_j$ determines zero probability 
+
+* Mutivariate distribution of $a_i$: $z_i \sim N(\mu, \Sigma)$, $a_{ij} = \mathbb{1}_{z_{ij}>\delta_j}e^{z_{ij}}$
+
+
+## Major assumptions
+
+* From the paper: "** In this model, zeros are
+interpreted as biological zeros and are related to a latent Gaussian variable. **"
+
+* The author recommends transforming the data using a centered-log-ratio transformation (which has the property of scale-invariance). They do this only on the non-zero values which preserves the zero structure. 
+
+* Then if they assume that $a_i$ follows the distribution described above, then the sample follows:
+
+$$ z_i \sim N(\hat{\mu}, \hat{\Sigma})$$
+
+$$ \hat{a}_{ij} = \mathbb{1}_{z_{ij}>\hat{\delta_j}}z_{ij}  $$
+* Assume that $\hat{\Sigma}$ is a good approximation of $\Sigma$
+
+* Assume that $\hat{y_i}$ approximates $\hat{a_i}$ and follows zero inflated normal distribution as above. 
+
+## Optimization problem
+
+Steps to estimate the latent layer (taken from the Prost 2021 paper)
+
+* Obtain initial estimates of parameters
+
+    * $\hat{\delta}_j = min_{y_{ij}\neq0}\hat{y}_{ij}$
+    
+    * Other parameters obtained by maximizing the log-likelihood
+
+* Transform data to posterior mean of $Z|\hat{Y}$ to obtain $\hat{Z}$
+
+* Infer structure of $\Sigma^{-1}$ with either glasso (solves penalized likelihood maximization problem for MV distribution) or neighborhood search (Meinshausen and Buhlmann) (sovles penalized pseudo-liklihood maximization problem)
+
+# Application of ZILN to real-world dataset
+
+## Data description
+
 In this tutorial I demonstrate the utility of the package using the same real-world microbial data used in the Prost (2021) paper. As in the paper, I use data from 1135 stool samples and have filtered down to 565 microbial markers. 
 
 ```{r}

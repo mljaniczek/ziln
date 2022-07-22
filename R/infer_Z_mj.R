@@ -1,7 +1,24 @@
-# my version of this function
-# accepts only standardized input so doesn't standardize within
+#' infer_Z_mj
+#'
+#' Zero inflated empirical correlation matrix
+#' (ver. 20190920)
+#'
+#' @param X matrix of n by p data where n are observations and p are numeric variables
+#' @param seq_depth specify "TS" for raw count data for centralized log-normalizing process
+#' or or "unif" for empirical cumulative distribution function method. See Prost paper for details.
+#'
+#' @return Empirical correlation matrix with same dimensions as input.
+#'
+#' @export
+#' @author Margaret Janiczek
+#' @examples
+#'
+#' \dontrun{
+#' res <- infer_Z_mj(data(as.matrix(counts_el)))
+#'  }
+#'
 
-infer_Z_mj = function(X, seq_depth = "TS") {
+infer_Z_mj <- function(X, seq_depth = "TS") {
 
   d = dim(X)[2] # number of rows
   n = dim(X)[1] # number of columns
